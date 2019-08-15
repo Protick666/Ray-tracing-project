@@ -1,0 +1,955 @@
+#include<stdio.h>
+#include<bits/c++io.h>
+#include<stdlib.h>
+#include<math.h>
+
+#include <windows.h>
+#include <GL/glut.h>
+
+#define pi (2*acos(0.0))
+#include <bits/stdc++.h>
+#include <math.h>
+#include "bitmap_image.hpp"
+
+using namespace std;
+
+double col[4];
+
+double Window_width= 500, Window_height=500;
+
+double image_width;
+
+void capture();
+
+
+class Vector3
+{
+public:
+    double x,y,z;
+    Vector3() {}
+    Vector3(double x,double y,double z)
+    {
+        this->x=x;
+        this->y=y;
+        this->z=z;
+    }
+    void pro()
+    {
+        cout<<this->x<<" "<<this->y<<" "<<this->z<<endl;
+    }
+    void normalize()
+    {
+        double tt = x*x+y*y+z*z;
+            tt=sqrt(tt);
+
+            this->x =  this->x/tt;
+             this->y =  this->y/tt;
+             this->z =  this->z/tt;
+    }
+};
+
+class Ray
+{
+public:
+    Vector3 start;
+    Vector3 dir;
+
+    Ray() {}
+    Ray(Vector3 x, Vector3 y)
+    {
+        start = x;
+        dir  = y;
+    }
+
+    //write appropriate constructor
+};
+
+class Object
+{
+public:
+
+    Vector3 reference_point;
+    double height, width, length;
+    int Shine;
+    double color[3];
+    double co_efficients[4];
+
+
+
+    Object() { }
+
+    virtual void draw() = 0;
+
+
+    virtual double intersect(Ray r,  int level) = 0;
+
+/***
+    double inter(Ray r,  int level)
+    {
+        cout<<"layer1"<<endl;
+        return intersect( r,   level);
+    }
+
+
+    void draw1()
+    {
+        draw();
+    }***/
+
+    void setDimension(double x, double y, double z)
+    {
+        this->height = x;
+        this->width = y;
+        this->length = z;
+    }
+
+    void setColor(double x, double y, double z)
+    {
+        this->color[0] = x;
+        this->color[1] = y;
+        this->color[2] = z;
+    }
+    void setShine(int x)
+    {
+        this->Shine = x;
+    }
+    void setCoEfficients(double x, double y, double z, double v)
+    {
+        this->co_efficients[0] = x;
+        this->co_efficients[1] = y;
+        this->co_efficients[2] = z;
+        this->co_efficients[3] = v;
+    }
+};
+void drawSphere(double radius,int slices,int stacks,Vector3 vv );
+
+class Sphere: public Object
+{
+public:
+    Sphere(Vector3 Center, double Radius)
+    {
+        this->reference_point = Center;
+        this->length = Radius;
+    }
+
+    double intersect(Ray r,  int level){
+
+            ////cout<<"SPHERE"<<endl;
+            double a = r.dir.x*r.dir.x + r.dir.y*r.dir.y + r.dir.z*r.dir.z ;
+
+            ////cout<<"DIR "<<a<<endl;
+            double b = r.dir.x*r.start.x + r.dir.y*r.start.y + r.dir.z*r.start.z;
+            b = b*2;
+            double c = r.start.x*r.start.x + r.start.y*r.start.y + r.start.z*r.start.z - length*length;
+            double d = b*b - 4*a*c;
+
+            if(d<0)
+                return -1;
+            d= sqrt(d);
+
+            ////cout<<a<<" "<<b<<" "<<c<<" "<<d<<endl;
+
+            double t1 = (-b + d)/(2*a);
+            double t2 = (-b - d)/(2*a);
+            col[0] = color[0];
+            col[1] = color[1];
+            col[2] = color[2];
+            ////cout<<"Setting color"<<col[0]<<" "<<col[1]<<" "<<col[2]<<endl;
+            return min(t1,t2);
+
+
+    }
+
+    void draw()
+    {
+        //cout<<"yo";
+        glPushMatrix();
+        {
+
+            glTranslatef(reference_point.x, reference_point.y, reference_point.z);
+            Vector3 vv(color[0],color[1],color[2]);
+            //cout<<"color "<<col[0]<<" "<<color[1]<<" "<<color[2]<<endl;
+            drawSphere(length, 40, 40,vv);
+
+        }
+        glPopMatrix();
+
+
+    }
+
+
+
+};
+
+class Floor: public Object
+{
+public:
+
+    Floor(double FloorWidth, double TileWidth)
+    {
+
+        Vector3 rf(-FloorWidth/2, -FloorWidth/2,  0);
+        reference_point = rf;
+        length = TileWidth;
+    }
+
+    void draw()
+    {
+        //cout<<"yo";
+        glPushMatrix();
+        {
+
+            int tot_tiles = (-reference_point.x*2)/length;
+
+            int seq = 0;
+
+            int cnt = 0;
+            int x_count;
+            int y_count;
+
+            for (double x_cord = reference_point.x, x_count=0; x_count<=tot_tiles; x_cord+= length, x_count++)
+                for (double y_cord = reference_point.y, y_count=0; y_count<=tot_tiles; y_cord+= length, y_count++)
+                {
+                    int p = x_count;
+                    int q =y_count;
+                    if ((p+q)%2 == 0)
+                    {
+                        glColor3f(0, 0, 0);
+                    }
+                    else
+                    {
+                        glColor3f(1, 1, 1);
+                    }
+
+                    glBegin(GL_QUADS);
+                    {
+                        glVertex3f(x_cord, y_cord, reference_point.z);
+                        glVertex3f(x_cord+length, y_cord, reference_point.z);
+                        glVertex3f(x_cord+length, y_cord+length, reference_point.z);
+                        glVertex3f(x_cord, y_cord+length, reference_point.z);
+
+                    }
+                    glEnd();
+
+                }
+
+        }
+        glPopMatrix();
+
+
+    }
+
+    double intersect(Ray r,  int level){
+                ////cout<<"FLOOR"<<endl;
+                return -1;
+           }
+};
+
+
+vector <Object*>  objects;
+vector <Vector3> lights;
+
+
+double cameraHeight;
+double cameraAngle;
+int drawgrid;
+int drawaxes;
+double k=80;
+double b=80;
+
+double angle;
+double x_pos=-100;
+double y_pos=0;
+double z_pos=0;
+
+
+struct point
+{
+    double x,y,z;
+};
+
+point u,r,l;
+
+point calc(point n,point m,double angle)
+{
+
+    double x=n.x;
+    double y=n.y;
+    double z=n.z;
+    double xx=m.x;
+    double yy=m.y;
+    double zz=m.z;
+
+    double cs=cos(angle);
+    double xs=x*cs;
+    double ys=y*cs;
+    double zs=z*cs;
+
+
+    double ss=sin(angle);
+    double xxs=xx*ss;
+    double yys=yy*ss;
+    double zzs=zz*ss;
+
+    point p= {xs+xxs,ys+yys,zs+zzs};
+    return p;
+
+}
+
+
+void drawAxes()
+{
+    if(drawaxes==1)
+    {
+        glColor3f(1.0, 1.0, 1.0);
+        glBegin(GL_LINES);
+        {
+            glColor3f(1.0, 0, 0);
+            glVertex3f( 100,0,0);
+            glVertex3f(-100,0,0);
+
+            glColor3f(0, 0, 1);
+            glVertex3f(0,-100,0);
+            glVertex3f(0, 100,0);
+
+            glColor3f(0, 1.0, 0);
+            glVertex3f(0,0, 100);
+            glVertex3f(0,0,-100);
+        }
+        glEnd();
+    }
+}
+
+
+void drawGrid()
+{
+    int i;
+    if(drawgrid==1)
+    {
+        glColor3f(0.6, 0.6, 0.6);	//grey
+        glBegin(GL_LINES);
+        {
+            for(i=-8; i<=8; i++)
+            {
+
+                if(i==0)
+                    continue;	//SKIP the MAIN axes
+
+                //lines parallel to Y-axis
+                glVertex3f(i*10, -90, 0);
+                glVertex3f(i*10,  90, 0);
+
+                //lines parallel to X-axis
+                glVertex3f(-90, i*10, 0);
+                glVertex3f( 90, i*10, 0);
+            }
+        }
+        glEnd();
+    }
+}
+
+
+
+void drawCircle(double radius,int segments)
+{
+    int i;
+    struct point points[100];
+    glColor3f(0.7,0.7,0.7);
+    //generate points
+    for(i=0; i<=segments; i++)
+    {
+        points[i].x=radius*cos(((double)i/(double)segments)*2*pi);
+        points[i].y=radius*sin(((double)i/(double)segments)*2*pi);
+    }
+    //draw segments using generated points
+    for(i=0; i<segments; i++)
+    {
+        glBegin(GL_LINES);
+        {
+            glVertex3f(points[i].x,points[i].y,0);
+            glVertex3f(points[i+1].x,points[i+1].y,0);
+        }
+        glEnd();
+    }
+}
+
+
+void zzdrawCircle(double radius,double h,int segments)
+{
+    segments=25;
+    if(h<=0)
+        return;
+    int i;
+    for(double p=h; p>=-h; p=p-.3)
+    {
+
+
+        struct point points[28];
+        glColor3f(0.7,0.7,0.7);
+        //generate points
+        for(i=0; i<=segments; i++)
+        {
+            points[i].x=radius*cos(((double)i/(double)segments)*(pi/2));
+            points[i].y=radius*sin(((double)i/(double)segments)*(pi/2));
+        }
+        //draw segments using generated points
+        for(i=0; i<segments; i++)
+        {
+            glBegin(GL_LINES);
+            {
+                glVertex3f(points[i].x,points[i].y,p);
+                glVertex3f(points[i+1].x,points[i+1].y,p);
+            }
+            glEnd();
+        }
+    }
+}
+
+
+
+
+void drawSphere(double radius,int slices,int stacks,Vector3 vv)
+{
+    struct point points[100][100];
+    int i,j;
+    double h,r;
+    //generate points
+    for(i=0; i<=stacks; i++)
+    {
+        h=radius*sin(((double)i/(double)stacks)*(pi/2));
+        r=radius*cos(((double)i/(double)stacks)*(pi/2));
+        for(j=0; j<=slices; j++)
+        {
+            points[i][j].x=r*cos(((double)j/(double)slices)*2*pi);
+            points[i][j].y=r*sin(((double)j/(double)slices)*2*pi);
+            points[i][j].z=h;
+        }
+    }
+    //draw quads using generated points
+    for(i=0; i<stacks; i++)
+    {
+        //glColor3f((double)i/(double)stacks,(double)i/(double)stacks,(double)i/(double)stacks);
+
+        glColor3f(vv.x,vv.y,vv.z);
+        for(j=0; j<slices; j++)
+        {
+            glBegin(GL_QUADS);
+            {
+                //upper hemisphere
+                glVertex3f(points[i][j].x,points[i][j].y,points[i][j].z);
+                glVertex3f(points[i][j+1].x,points[i][j+1].y,points[i][j+1].z);
+                glVertex3f(points[i+1][j+1].x,points[i+1][j+1].y,points[i+1][j+1].z);
+                glVertex3f(points[i+1][j].x,points[i+1][j].y,points[i+1][j].z);
+                //lower hemisphere
+                glVertex3f(points[i][j].x,points[i][j].y,-points[i][j].z);
+                glVertex3f(points[i][j+1].x,points[i][j+1].y,-points[i][j+1].z);
+                glVertex3f(points[i+1][j+1].x,points[i+1][j+1].y,-points[i+1][j+1].z);
+                glVertex3f(points[i+1][j].x,points[i+1][j].y,-points[i+1][j].z);
+            }
+            glEnd();
+        }
+    }
+}
+
+void zdrawSphere(double radius,int slices,int stacks)
+{
+    struct point points[100][100];
+    int i,j;
+    double h,r;
+    //generate points
+    for(i=0; i<=stacks; i++)
+    {
+        h=radius*sin(((double)i/(double)stacks)*(pi/2));
+        r=radius*cos(((double)i/(double)stacks)*(pi/2));
+        for(j=0; j<=slices; j++)
+        {
+            points[i][j].x=r*cos(((double)j/(double)slices)*(pi/2));
+            points[i][j].y=r*sin(((double)j/(double)slices)*(pi/2));
+            points[i][j].z=h;
+        }
+    }
+    //draw quads using generated points
+    for(i=0; i<stacks; i++)
+    {
+        glColor3f(1,0,0);
+        for(j=0; j<slices; j++)
+        {
+            glBegin(GL_QUADS);
+            {
+                //upper hemisphere
+                glVertex3f(points[i][j].x,points[i][j].y,points[i][j].z);
+                glVertex3f(points[i][j+1].x,points[i][j+1].y,points[i][j+1].z);
+                glVertex3f(points[i+1][j+1].x,points[i+1][j+1].y,points[i+1][j+1].z);
+                glVertex3f(points[i+1][j].x,points[i+1][j].y,points[i+1][j].z);
+                //lower hemisphere
+
+            }
+            glEnd();
+        }
+    }
+}
+
+void drawzz()
+{
+
+    zzdrawCircle(50,50,50);
+
+}
+
+void drawSS()
+{
+
+
+    for(int i=0; i<objects.size(); i++)
+    {
+
+
+        objects[i]->draw();
+
+
+    }
+
+
+    /***glPushMatrix();
+    {
+
+     glTranslatef(0,0,k);
+     drawSquarexy(b);
+    }
+    glPopMatrix();***/
+
+
+
+}
+
+
+
+void keyboardListener(unsigned char key, int x,int y)
+{
+    switch(key)
+    {
+
+
+    case '1':
+    {
+        point temp_up=calc(u,l,.02);
+        point temp_for=calc(l,u,-.02);
+        u=temp_up;
+        l=temp_for;
+    }
+    break;
+    case '2':
+    {
+        point temp_up=calc(u,l,-.02);
+        point temp_for=calc(l,u,.02);
+        u=temp_up;
+        l=temp_for;
+    }
+    break;
+    case '3':
+    {
+        point temp_rt=calc(r,l,-.02);
+        point temp_for=calc(l,r,.02);
+        r=temp_rt;
+        l=temp_for;
+    }
+    break;
+    case '4':
+    {
+        point temp_rt=calc(r,l,.02);
+        point temp_for=calc(l,r,-.02);
+        r=temp_rt;
+        l=temp_for;
+    }
+    break;
+    case '5':
+    {
+        point temp_rt=calc(u,r,-.02);
+        point temp_for=calc(r,u,.02);
+        u=temp_rt;
+        r=temp_for;
+    }
+    break;
+    case '6':
+    {
+        point temp_rt=calc(u,r,.02);
+        point temp_for=calc(r,u,-.02);
+        u=temp_rt;
+        r=temp_for;
+    }
+    break;
+    case '0':
+        capture();
+        break;
+
+    default:
+        break;
+    }
+}
+
+
+void specialKeyListener(int key, int x,int y)
+{
+    switch(key)
+    {
+    case GLUT_KEY_DOWN:		//down arrow key
+    {
+        y_pos-=l.y;
+        x_pos-=l.x;
+        z_pos-=l.z;
+    }
+    break;
+    case GLUT_KEY_UP:		// up arrow key
+    {
+        y_pos+=l.y;
+        x_pos+=l.x;
+        z_pos+=l.z;
+    }
+    break;
+
+    case GLUT_KEY_RIGHT:
+    {
+        y_pos+=r.y;
+        x_pos+=r.x;
+        z_pos+=r.z;
+    }
+    break;
+    case GLUT_KEY_LEFT:
+    {
+        y_pos=y_pos-r.y;
+        x_pos=x_pos-r.x;
+        z_pos= z_pos-r.z;
+    }
+    break;
+
+    case GLUT_KEY_PAGE_UP:
+    {
+        y_pos+=u.y;
+        x_pos+=u.x;
+        z_pos+=u.z;
+    }
+    break;
+
+    case GLUT_KEY_PAGE_DOWN:
+    {
+        y_pos-=u.y;
+        x_pos-=u.x;
+        z_pos-=u.z;
+    }
+    break;
+
+    case GLUT_KEY_HOME:
+    {
+        if(b+.5<=k)
+            b=b+.5;
+    }
+    break;
+    case GLUT_KEY_END:
+    {
+        if(b-.5>=0)
+            b=b-.5;
+    }
+    break;
+
+    default:
+        break;
+    }
+}
+
+
+void mouseListener(int button, int state, int x, int y) 	//x, y is the x-y of the screen (2D)
+{
+    switch(button)
+    {
+    case GLUT_LEFT_BUTTON:
+        if(state == GLUT_DOWN) 		// 2 times?? in ONE click? -- solution is checking DOWN or UP
+        {
+            drawaxes=1-drawaxes;
+        }
+        break;
+
+    case GLUT_RIGHT_BUTTON:
+        //........
+        break;
+
+    case GLUT_MIDDLE_BUTTON:
+        //........
+        break;
+
+    default:
+        break;
+    }
+}
+
+
+
+void display()
+{
+
+    //clear the display
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClearColor(0,0,0,0);	//color black
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    /********************
+    / set-up camera here
+    ********************/
+    //load the correct matrix -- MODEL-VIEW matrix
+    glMatrixMode(GL_MODELVIEW);
+
+    //ialize the matrix
+    glLoadIdentity();
+
+    //now give three info
+    //1. where is the camera (viewer)?
+    //2. where is the camera looking?
+    //3. Which direction is the camera's UP direction?
+
+    //gluLookAt(100,100,100,	0,0,0,	0,0,1);
+    //gluLookAt(200*cos(cameraAngle), 200*sin(cameraAngle), cameraHeight,		0,0,0,		0,0,1);
+    gluLookAt(x_pos,y_pos,z_pos,x_pos+l.x,y_pos+l.y,z_pos+l.z,	u.x,u.y,u.z);
+
+
+    //again select MODEL-VIEW
+    glMatrixMode(GL_MODELVIEW);
+
+
+    /****************************
+    / Add your objects from here
+    ****************************/
+    //add objects
+
+    drawAxes();
+    drawGrid();
+
+    //glColor3f(1,0,0);
+    //drawSquare(10);
+
+    //drawSS();
+    drawSS();
+
+    //drawCircle(30,24);
+
+    //drawCone(20,50,24);
+
+    //drawSphere(30,24,20);
+
+
+
+
+    //ADD this line in the end --- if you use double buffer (i.e. GL_DOUBLE)
+    glutSwapBuffers();
+}
+
+
+void animate()
+{
+    //angle+=0.05;
+    //codes for any changes in Models, Camera
+    glutPostRedisplay();
+}
+
+void init()
+{
+    //codes for initialization
+    drawgrid=0;
+    drawaxes=1;
+    cameraHeight=150.0;
+    cameraAngle=1.0;
+    //angle=0;
+    //l= {0,0,-1};
+    //r= {1,0,0};
+    //u= {0,1,0};
+
+    l= {1,0,0};
+    r= {0,-1,0};
+    u= {0,0,1};
+
+    //clear the screen
+    glClearColor(0,0,0,0);
+
+    /************************
+    / set-up projection here
+    ************************/
+    //load the PROJECTION matrix
+    glMatrixMode(GL_PROJECTION);
+
+    //initialize the matrix
+    glLoadIdentity();
+
+    //give PERSPECTIVE parameters
+    gluPerspective(110,	1,	1,	1000.0);
+    //field of view in the Y (vertically)
+    //aspect ratio that determines the field of view in the X direction (horizontally)
+    //near distance
+    //far distance
+}
+
+Vector3 scalar_mul(Vector3 a,double val)
+{
+    Vector3 t(a.x*val,a.y*val,a.z*val);
+    return t;
+}
+
+Vector3 addi(Vector3 a,Vector3 b)
+{
+    Vector3 temp(a.x+b.x,a.y+b.y,a.z+b.z);
+    return temp;
+}
+
+void loadTestData()
+{
+
+    image_width = 768;
+
+    Object *temp;
+    Vector3 ct(0,0,10);
+    temp=new Sphere(ct, 10); // Center(0,0,10), Radius 10
+    temp->setColor(255,0,0);
+    temp->setCoEfficients(0.4,0.2,0.2,0.2);
+    temp->setShine(1);
+
+    objects.push_back(temp);
+
+    Vector3 ct1(-50,100,40);
+    temp=new Sphere(ct1, 50); // Center(0,0,10), Radius 10
+    temp->setColor(255,255,0);
+    temp->setCoEfficients(0.4,0.2,0.2,0.2);
+    temp->setShine(1);
+
+    objects.push_back(temp);
+
+    Vector3 light1(-50,50,50);
+    lights.push_back(light1);
+
+
+    temp=new Floor(1000, 20);
+    temp->setCoEfficients(0.4,0.2,0.2,0.2);
+    temp->setShine(1);
+    objects.push_back(temp);
+
+
+}
+
+void capture()
+{
+    ////cout<<"INSIDE"<<endl;
+    bitmap_image image(image_width, image_width);
+
+    for(int i=0; i<image_width; i++)
+    {
+        for(int j=0; j<image_width; j++)
+        {
+            image.set_pixel(i,j,0,0,0);
+        }
+    }
+
+    ////cout<<"Done with image creation"<<endl;
+
+    double plane_distance= (Window_height/2)/tan(110*3.1416/360);
+
+    ////double topleft= eye + l*plane_distance-r*WINDOW_WIDTH/2+u*WINDOW_HEIGHT/2);
+
+    Vector3 look(l.x, l.y, l.z);
+    Vector3 up(u.x, u.y, u.z);
+    Vector3 right(r.x, r.y, r.z);
+    cout<<"hell"<<endl;
+    look.pro();up.pro();right.pro();
+    look.normalize();up.normalize();right.normalize();
+
+    look.pro();up.pro();right.pro();
+    cout<<plane_distance<<endl;
+
+    Vector3 eyepos(x_pos, y_pos, z_pos);
+    Vector3 topleft = addi(eyepos, scalar_mul(look,plane_distance));
+    topleft = addi(topleft,scalar_mul(right,-Window_width/2));
+    topleft = addi(topleft,scalar_mul(up,Window_height/2));
+
+    double du=Window_width/image_width;
+    double dv=Window_height/image_width;
+
+    ////cout<<"Done with PRE CALC"<<endl;
+
+    for (int i=0; i<image_width; i++)
+        for (int j=0; j<image_width; j++)
+        {
+
+            //cout<<"PRE"<<i<<" "<<j<<endl;
+            //Vector3 cor = topLeft + r*j*du - u*i*dv;
+            Vector3 cor = addi(topleft, scalar_mul(right, j * du));
+            cor = addi(cor, scalar_mul(up, -i * dv));
+            //cout<<cornerDir;
+
+            Vector3  d(cor.x-eyepos.x, cor.y-eyepos.y, cor.z-eyepos.z);
+
+            double tt = d.x*d.x + d.y*d.y + d.z*d.z;
+            tt=sqrt(tt);
+
+            d.x = d.x/tt;
+            d.y = d.y/tt;
+            d.z = d.z/tt;
+
+            Ray ray(eyepos, d);
+
+            double nearest = -1;
+            double dist_ref = 1000000000000;
+
+           // cout<<"POST"<<i<<" "<<j<<endl;
+            for(int id=0; id<objects.size(); id++)
+            {
+
+                //cout<<"CALLING"<<id<<endl;
+
+                double temp =  objects[id]->intersect(ray, 0);
+                //cout<<"CALL_BACK"<<id<<endl;
+                if(temp<dist_ref && temp>=0)
+                {
+                    dist_ref = temp;
+                    nearest = id;
+
+                    //cout<<"GOT ONE";
+                }
+            }
+
+            if(nearest!=-1)
+            {
+                double temp =  objects[nearest]->intersect(ray, 0);
+                //cout<<"YO CHAMP";
+                    image.set_pixel(i,j,col[0],col[1],col[2]);
+            }
+        }
+
+        cout<<" image save"<<endl;
+
+        image.save_image("2.bmp");
+
+}
+
+int main(int argc, char **argv)
+{
+    glutInit(&argc,argv);
+    glutInitWindowSize(1000, 1000);
+    glutInitWindowPosition(0, 0);
+    glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGB);	//Depth, Double buffer, RGB color
+
+    glutCreateWindow("My OpenGL Program");
+
+    init();
+
+    loadTestData();
+
+
+
+    glEnable(GL_DEPTH_TEST);	//enable Depth Testing
+
+    glutDisplayFunc(display);	//display callback function
+    glutIdleFunc(animate);		//what you want to do in the idle time (when no drawing is occuring)
+
+    glutKeyboardFunc(keyboardListener);
+    glutSpecialFunc(specialKeyListener);
+    glutMouseFunc(mouseListener);
+
+    glutMainLoop();		//The main loop of OpenGL
+
+    return 0;
+}
